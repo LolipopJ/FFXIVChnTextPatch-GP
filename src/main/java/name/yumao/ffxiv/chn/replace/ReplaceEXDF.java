@@ -43,35 +43,35 @@ import name.yumao.ffxiv.chn.util.nlpcn.JianFan;
 import name.yumao.ffxiv.chn.util.res.Config;
 
 public class ReplaceEXDF {
-	
+
 	private String pathToIndexSE;
 	private String pathToIndexCN;
 	private List<String> fileList;
-	
+
 	private HashMap<String, byte[]> exQuestMap;
 	private HashMap<String, String> transMap;
 	private PercentPanel percentPanel;
-	
+
 	private String slang;
 	private String dlang;
 	// flang should be CHS or JA at default.
 	private String flang;
 	private boolean csv;
-	
+
 	public ReplaceEXDF(String pathToIndexSE, String pathToIndexCN, PercentPanel percentPanel) {
 		// 這兩個檔案會是0a0000.win32.index
 		this.pathToIndexSE = pathToIndexSE;
 		this.pathToIndexCN = pathToIndexCN;
 		this.percentPanel = percentPanel;
 		this.fileList = new ArrayList<>();
-		this.exQuestMap = (HashMap)new HashMap<>();
+		this.exQuestMap = new HashMap<>();
 		this.transMap = new HashMap<>();
 		this.slang = Config.getProperty("SLanguage");
 		this.dlang = Config.getProperty("DLanguage");
 		this.flang = Config.getProperty("FLanguage");
 		this.csv = this.flang.equals("CSV");
 	}
-	
+
 	public void replace() throws Exception {
 		File transtableFile;
 		Pattern pattern = null;
@@ -107,21 +107,26 @@ public class ReplaceEXDF {
 			try {
 				log.info("[ReplaceEXDF] Loading exQuestMap...");
 				// exQuestMap這時候是個空的hashMap，透過以下兩行將東西填進去
-				this.exQuestMap = (new EXDFUtil(this.pathToIndexSE, this.pathToIndexCN, this.fileList)).exCompleteJournalSE(this.exQuestMap);
-				this.exQuestMap = (new EXDFUtil(this.pathToIndexSE, this.pathToIndexCN, this.fileList)).exQuestSE(this.exQuestMap);
+				this.exQuestMap = (new EXDFUtil(this.pathToIndexSE, this.pathToIndexCN, this.fileList))
+						.exCompleteJournalSE(this.exQuestMap);
+				this.exQuestMap = (new EXDFUtil(this.pathToIndexSE, this.pathToIndexCN, this.fileList))
+						.exQuestSE(this.exQuestMap);
 				log.info("[ReplaceEXDF] Loading exQuestMap Complete");
-			} catch (Exception exception) {}
+			} catch (Exception exception) {
+			}
 			try {
 				log.info("[ReplaceEXDF] Loading transMap...");
-				this.transMap = (new EXDFUtil(this.pathToIndexSE, this.pathToIndexCN, this.fileList)).transMap(this.transMap);
+				this.transMap = (new EXDFUtil(this.pathToIndexSE, this.pathToIndexCN, this.fileList))
+						.transMap(this.transMap);
 				log.info("[ReplaceEXDF] Loading transMap Complete");
-			} catch (Exception exception) {}
+			} catch (Exception exception) {
+			}
 		}
 		skipFiles = Arrays.asList(Config.getProperty("SkipFiles").toLowerCase().split("[|]"));
 		// 根據傳入的檔案進行遍歷
 		int fileCount = 0;
 		for (String replaceFile : this.fileList) {
-			percentPanel.percentShow((double)(++fileCount) / (double)fileList.size());
+			percentPanel.percentShow((double) (++fileCount) / (double) fileList.size());
 			if (replaceFile.toUpperCase().endsWith(".EXH")) {
 				String replaceFileName = replaceFile.substring(0, replaceFile.lastIndexOf(".")).toLowerCase();
 				if (skipFiles.contains(replaceFileName)) {
@@ -130,18 +135,18 @@ public class ReplaceEXDF {
 					continue;
 				} else {
 					boolean skipThis = false;
-					for (String skipKey: skipFiles) {
-						 if (replaceFileName.startsWith(skipKey + "/")) {
-							 skipThis = true;
-							 break;
-						 }
+					for (String skipKey : skipFiles) {
+						if (replaceFileName.startsWith(skipKey + "/")) {
+							skipThis = true;
+							break;
+						}
 					}
 					if (skipThis) {
 						log.info(replaceFileName + " in skipFiles. Skip this part.");
 						continue;
 					}
 				}
-				percentPanel.progressShow("正在替換文本：", replaceFile);
+				percentPanel.progressShow("正在替换文本：", replaceFile);
 				log.info("Read :    " + replaceFile);
 				// 準備好檔案目錄名和檔案名
 				String filePatch = replaceFile.substring(0, replaceFile.lastIndexOf("/"));
@@ -152,10 +157,11 @@ public class ReplaceEXDF {
 				Integer exhFileCRC = Integer.valueOf(FFCRC.ComputeCRC(fileName.toLowerCase().getBytes()));
 				// 解壓縮並解析EXH
 				if (indexSE.get(filePatchCRC) == null)
-					continue; 
-				SqPackIndexFile exhIndexFileSE = (SqPackIndexFile)((SqPackIndexFolder)indexSE.get(filePatchCRC)).getFiles().get(exhFileCRC);
+					continue;
+				SqPackIndexFile exhIndexFileSE = (SqPackIndexFile) ((SqPackIndexFolder) indexSE.get(filePatchCRC))
+						.getFiles().get(exhFileCRC);
 				if (exhIndexFileSE == null)
-					continue; 
+					continue;
 				byte[] exhFileSE = extractFile(this.pathToIndexSE, exhIndexFileSE.getOffset());
 				EXHFFile exhSE = new EXHFFile(exhFileSE);
 				EXHFFile exhCN = null;
@@ -163,22 +169,24 @@ public class ReplaceEXDF {
 				boolean cnEXHFileAvailable = true;
 				if (!this.csv) {
 					try {
-						SqPackIndexFile exhIndexFileCN = (SqPackIndexFile)((SqPackIndexFolder)indexCN.get(filePatchCRC)).getFiles().get(exhFileCRC);
+						SqPackIndexFile exhIndexFileCN = (SqPackIndexFile) ((SqPackIndexFolder) indexCN
+								.get(filePatchCRC)).getFiles().get(exhFileCRC);
 						byte[] exhFileCN = extractFile(this.pathToIndexCN, exhIndexFileCN.getOffset());
 						exhCN = new EXHFFile(exhFileCN);
 						// 添加對照的StringDataset
 						int cnDatasetPossition = 0;
-						if (datasetStringCount(exhSE.getDatasets()) > 0 && datasetStringCount(exhSE.getDatasets()) == datasetStringCount(exhCN.getDatasets()))
+						if (datasetStringCount(exhSE.getDatasets()) > 0
+								&& datasetStringCount(exhSE.getDatasets()) == datasetStringCount(exhCN.getDatasets()))
 							for (EXDFDataset datasetSE : exhSE.getDatasets()) {
 								if (datasetSE.type == 0) {
 									while ((exhCN.getDatasets()[cnDatasetPossition]).type != 0)
-										cnDatasetPossition++; 
+										cnDatasetPossition++;
 									datasetMap.put(datasetSE, exhCN.getDatasets()[cnDatasetPossition++]);
-								} 
-							}  
+								}
+							}
 					} catch (Exception cnEXHFileException) {
 						cnEXHFileAvailable = false;
-					} 
+					}
 				} else {
 					cnEXHFileAvailable = false;
 				}
@@ -192,20 +200,24 @@ public class ReplaceEXDF {
 							csvSettings.setMaxCharsPerColumn(-1);
 							csvSettings.setMaxColumns(4096);
 							CsvParser csvParser = new CsvParser(csvSettings);
-							String csvPath = "resource" + File.separator + "rawexd" + File.separator +  replaceFile.substring(4, replaceFile.indexOf(".")) + ".csv";
+							String csvPath = "resource" + File.separator + "rawexd" + File.separator
+									+ replaceFile.substring(4, replaceFile.indexOf(".")) + ".csv";
 							if (!(new File(csvPath).exists())) {
 								log.warning("File not exists: " + csvPath);
 								continue;
 							}
-							// List<String[]> allRows = csvParser.parseAll(new FileReader(csvPath, StandardCharsets.UTF_8));
-							List<String[]> allRows = csvParser.parseAll(new InputStreamReader(new FileInputStream(new File(csvPath)), "UTF-8"));
+							// List<String[]> allRows = csvParser.parseAll(new FileReader(csvPath,
+							// StandardCharsets.UTF_8));
+							List<String[]> allRows = csvParser
+									.parseAll(new InputStreamReader(new FileInputStream(new File(csvPath)), "UTF-8"));
 							for (int i = 1; i < allRows.get(1).length; i++) {
 								offsetMap.put(Integer.valueOf((allRows.get(1))[i]), i - 1);
-							}						
+							}
 							int rowNumber = allRows.size();
 							for (int i = 3; i < rowNumber; i++) {
 								String[] rowData = allRows.get(i);
-								csvDataMap.put(Integer.valueOf(rowData[0]), Arrays.copyOfRange(rowData, 1, rowData.length));
+								csvDataMap.put(Integer.valueOf(rowData[0]),
+										Arrays.copyOfRange(rowData, 1, rowData.length));
 							}
 						} catch (Exception csvFileIndexValueException) {
 							log.log(Level.WARNING, "CSV Exception: ", csvFileIndexValueException);
@@ -216,25 +228,30 @@ public class ReplaceEXDF {
 					// 根據標頭檔案輪詢資源檔案
 					for (EXDFPage exdfPage : exhSE.getPages()) {
 						// 獲取資源檔案的CRC
-						Integer exdFileCRCJA = Integer.valueOf(FFCRC.ComputeCRC(fileName.replace(".EXH", "_" + String.valueOf(exdfPage.pageNum) + "_" + this.slang + ".EXD").toLowerCase().getBytes()));
+						Integer exdFileCRCJA = Integer.valueOf(FFCRC.ComputeCRC(fileName
+								.replace(".EXH", "_" + String.valueOf(exdfPage.pageNum) + "_" + this.slang + ".EXD")
+								.toLowerCase().getBytes()));
 						// 進行CRC存在校驗
 						log.info("Replace : " + fileName);
 						// 提取對應的文本檔案
-						SqPackIndexFile exdIndexFileJA = (SqPackIndexFile)((SqPackIndexFolder)indexSE.get(filePatchCRC)).getFiles().get(exdFileCRCJA);
+						SqPackIndexFile exdIndexFileJA = (SqPackIndexFile) ((SqPackIndexFolder) indexSE
+								.get(filePatchCRC)).getFiles().get(exdFileCRCJA);
 						byte[] exdFileJA = null;
 						try {
 							exdFileJA = extractFile(this.pathToIndexSE, exdIndexFileJA.getOffset());
 						} catch (Exception jaEXDFileException) {
 							continue;
 						}
-						
+
 						// added 檢查日文檔案是否損毀
 						if (exdFileJA == null) {
-							log.severe("[ERROR] exdFileJA null detected. The error typically occurs when your original file is corrupted.");
-							log.severe("[ERROR] exdIndexFileJA.getOffset(): " + String.valueOf(exdIndexFileJA.getOffset()));
+							log.severe(
+									"[ERROR] exdFileJA null detected. The error typically occurs when your original file is corrupted.");
+							log.severe("[ERROR] exdIndexFileJA.getOffset(): "
+									+ String.valueOf(exdIndexFileJA.getOffset()));
 							continue;
 						}
-						
+
 						// 解壓文本檔案並提取內容
 						EXDFFile ja_exd = new EXDFFile(exdFileJA);
 						HashMap<Integer, byte[]> jaExdList = ja_exd.getEntrys();
@@ -242,9 +259,18 @@ public class ReplaceEXDF {
 						boolean cnEXDFileAvailable = true;
 						if ((!this.csv) && cnEXHFileAvailable) {
 							try {
-								// Integer exdFileCRCCN = Integer.valueOf(FFCRC.ComputeCRC(fileName.replace(".EXH", "_" + String.valueOf(exdfPage.pageNum) + "_CHS.EXD").toLowerCase().getBytes()));
-								Integer exdFileCRCCN = Integer.valueOf(FFCRC.ComputeCRC(fileName.replace(".EXH", "_" + String.valueOf(exdfPage.pageNum) + "_" + this.flang + ".EXD").toLowerCase().getBytes()));
-								SqPackIndexFile exdIndexFileCN = (SqPackIndexFile)((SqPackIndexFolder)indexCN.get(filePatchCRC)).getFiles().get(exdFileCRCCN);
+								// Integer exdFileCRCCN =
+								// Integer.valueOf(FFCRC.ComputeCRC(fileName.replace(".EXH", "_" +
+								// String.valueOf(exdfPage.pageNum) + "_CHS.EXD").toLowerCase().getBytes()));
+								Integer exdFileCRCCN = Integer
+										.valueOf(
+												FFCRC.ComputeCRC(fileName
+														.replace(".EXH",
+																"_" + String.valueOf(exdfPage.pageNum) + "_"
+																		+ this.flang + ".EXD")
+														.toLowerCase().getBytes()));
+								SqPackIndexFile exdIndexFileCN = (SqPackIndexFile) ((SqPackIndexFolder) indexCN
+										.get(filePatchCRC)).getFiles().get(exdFileCRCCN);
 								byte[] exdFileCN = extractFile(this.pathToIndexCN, exdIndexFileCN.getOffset());
 								EXDFFile chs_exd = new EXDFFile(exdFileCN);
 								chsExdList = chs_exd.getEntrys();
@@ -259,10 +285,10 @@ public class ReplaceEXDF {
 							Integer listEntryIndex = listEntry.getKey();
 							EXDFEntry exdfEntryJA = new EXDFEntry(listEntry.getValue(), exhSE.getDatasetChunkSize());
 							if (exdfEntryJA.getData().length == 0) {
-							    log.severe("Data size was insufficient, bypass handling.");
-							    continue;
+								log.severe("Data size was insufficient, bypass handling.");
+								continue;
 							}
-							
+
 							EXDFEntry exdfEntryCN = null;
 							boolean cnEntryAvailable = true;
 							if (cnEXDFileAvailable) {
@@ -273,7 +299,8 @@ public class ReplaceEXDF {
 									cnEntryAvailable = false;
 								}
 							}
-							LERandomBytes chunk = new LERandomBytes(new byte[(exdfEntryJA.getChunk()).length], true, false);
+							LERandomBytes chunk = new LERandomBytes(new byte[(exdfEntryJA.getChunk()).length], true,
+									false);
 							chunk.write(exdfEntryJA.getChunk());
 							byte[] newFFXIVString = new byte[0];
 							int stringCount = 1;
@@ -290,8 +317,9 @@ public class ReplaceEXDF {
 									chunk.writeInt(newFFXIVString.length);
 									// 更新文本內容
 									// EXD/warp/WarpInnUldah.EXH -> exd/warp/warpinnuldah_xxxxx_xxxxx
-									
-									String transKey = replaceFileName + "_" + String.valueOf(listEntryIndex) + "_" + String.valueOf(stringCount);
+
+									String transKey = replaceFileName + "_" + String.valueOf(listEntryIndex) + "_"
+											+ String.valueOf(stringCount);
 									if (this.csv) {
 										// added CSV mode
 										// `replaceFile` is the filename like `quest` or `quest/000/ClsHrv001_00003`
@@ -307,16 +335,20 @@ public class ReplaceEXDF {
 													char currentChar = readString.charAt(i);
 													switch (currentChar) {
 														case '<': {
-															if ((readString.charAt(i+1) == 'h') && (readString.charAt(i+2) == 'e') && (readString.charAt(i+3) == 'x')) {
+															if ((readString.charAt(i + 1) == 'h')
+																	&& (readString.charAt(i + 2) == 'e')
+																	&& (readString.charAt(i + 3) == 'x')) {
 																if (isHexString) {
 																	log.warning("TagInTagException!" + readString);
-																	throw new Exception("TagInTagException!" + readString);
+																	throw new Exception(
+																			"TagInTagException!" + readString);
 																} else {
 																	isHexString = true;
 																}
 															}
 															if (newString.length() > 0) {
-																newFFXIVString = ArrayUtil.append(newFFXIVString, newString.getBytes("UTF-8"));
+																newFFXIVString = ArrayUtil.append(newFFXIVString,
+																		newString.getBytes("UTF-8"));
 																newString = "";
 															}
 															newString += currentChar;
@@ -325,7 +357,9 @@ public class ReplaceEXDF {
 														case '>': {
 															newString += currentChar;
 															if (isHexString) {
-																newFFXIVString = ArrayUtil.append(newFFXIVString, HexUtils.hexStringToBytes(newString.substring(5, newString.length() - 1)));
+																newFFXIVString = ArrayUtil.append(newFFXIVString,
+																		HexUtils.hexStringToBytes(newString.substring(5,
+																				newString.length() - 1)));
 																newString = "";
 																isHexString = false;
 															}
@@ -337,36 +371,47 @@ public class ReplaceEXDF {
 													}
 												}
 												if (!newString.isEmpty()) {
-													newFFXIVString = ArrayUtil.append(newFFXIVString, newString.getBytes("UTF-8"));
+													newFFXIVString = ArrayUtil.append(newFFXIVString,
+															newString.getBytes("UTF-8"));
 													newString = "";
 												}
 											} else {
-												// System.out.println("\t\tCannot find listEntryIndex " + String.valueOf(listEntryIndex));
-												newFFXIVString = ArrayUtil.append(newFFXIVString,  jaBytes);
+												// System.out.println("\t\tCannot find listEntryIndex " +
+												// String.valueOf(listEntryIndex));
+												newFFXIVString = ArrayUtil.append(newFFXIVString, jaBytes);
 											}
 										} else {
-											newFFXIVString = ArrayUtil.append(newFFXIVString,  jaBytes);
+											newFFXIVString = ArrayUtil.append(newFFXIVString, jaBytes);
 										}
-										
-									} else if (Config.getConfigResource("transtable") != null && Config.getProperty("transtable", transKey) != null && Config.getProperty("transtable", transKey).length() > 0) {
+
+									} else if (Config.getConfigResource("transtable") != null
+											&& Config.getProperty("transtable", transKey) != null
+											&& Config.getProperty("transtable", transKey).length() > 0) {
 										// 0. transTable
-										newFFXIVString = ArrayUtil.append(newFFXIVString, convertString(HexUtils.hexStringToBytes(Config.getProperty("transtable", transKey))));
+										newFFXIVString = ArrayUtil.append(newFFXIVString, convertString(
+												HexUtils.hexStringToBytes(Config.getProperty("transtable", transKey))));
 									} else if (pattern.matcher(jaFFStr).find()) {
 										// 1. 正則
 										// 如果只有一個純由英數字和特定符號組成的單字，不用處理，直接加進來
 										newFFXIVString = ArrayUtil.append(newFFXIVString, jaBytes);
-									} else if (this.exQuestMap.get(transKey) != null && ((byte[])this.exQuestMap.get(transKey)).length > 0) {
+									} else if (this.exQuestMap.get(transKey) != null
+											&& ((byte[]) this.exQuestMap.get(transKey)).length > 0) {
 										// 2. questMap
 										// 如果transkey有在任務map裡面找到且其長度>0，則引出其值
-										newFFXIVString = ArrayUtil.append(newFFXIVString, convertString(this.exQuestMap.get(transKey)));
+										newFFXIVString = ArrayUtil.append(newFFXIVString,
+												convertString(this.exQuestMap.get(transKey)));
 									} else if (skipFiles.contains(replaceFileName)) {
 										// 3. SkipFiles
 										newFFXIVString = ArrayUtil.append(newFFXIVString, jaBytes);
-									} else if (cnEXHFileAvailable && cnEXDFileAvailable && cnEntryAvailable && jaBytes.length > 0 && datasetMap
-										.get(exdfDatasetSE) != null && (exdfEntryCN
-										.getString(((EXDFDataset)datasetMap.get(exdfDatasetSE)).offset)).length > 0) {
+									} else if (cnEXHFileAvailable && cnEXDFileAvailable && cnEntryAvailable
+											&& jaBytes.length > 0 && datasetMap
+													.get(exdfDatasetSE) != null
+											&& (exdfEntryCN
+													.getString(((EXDFDataset) datasetMap
+															.get(exdfDatasetSE)).offset)).length > 0) {
 										// cnResource
-										byte[] chBytes = exdfEntryCN.getString(((EXDFDataset)datasetMap.get(exdfDatasetSE)).offset);
+										byte[] chBytes = exdfEntryCN
+												.getString(((EXDFDataset) datasetMap.get(exdfDatasetSE)).offset);
 										String chFFStr = FFXIVString.parseFFXIVString(chBytes);
 										if (pattern.matcher(chFFStr).find()) {
 											// 如果中文字串只有一個純英數字的詞，就使用日文原文。
@@ -374,18 +419,21 @@ public class ReplaceEXDF {
 										} else {
 											// 如果不是，在進行簡繁轉換（如需要）之後送出。
 											newFFXIVString = ArrayUtil.append(newFFXIVString, convertString(chBytes));
-										} 
-									} else if (this.transMap.get(jaStr) != null && ((String)this.transMap.get(jaStr)).length() > 0) {
-										// 在一個<jaStr, chStr>的HashMap裡面找對應的詞條。這個HashMap裡面只包含"EXD/Action", "EXD/ENpcResident", "EXD/BNpcName", "EXD/PlaceName"
-										newFFXIVString = ArrayUtil.append(newFFXIVString, convertString(((String)this.transMap.get(jaStr)).getBytes("UTF-8")));
+										}
+									} else if (this.transMap.get(jaStr) != null
+											&& ((String) this.transMap.get(jaStr)).length() > 0) {
+										// 在一個<jaStr, chStr>的HashMap裡面找對應的詞條。這個HashMap裡面只包含"EXD/Action",
+										// "EXD/ENpcResident", "EXD/BNpcName", "EXD/PlaceName"
+										newFFXIVString = ArrayUtil.append(newFFXIVString,
+												convertString(((String) this.transMap.get(jaStr)).getBytes("UTF-8")));
 									} else {
 										// 原文
 										newFFXIVString = ArrayUtil.append(newFFXIVString, jaBytes);
-									} 
+									}
 									// newFFXIVString是每一個dataset重置一次
 									newFFXIVString = ArrayUtil.append(newFFXIVString, new byte[] { 0 });
 									stringCount++;
-								} 
+								}
 							}
 							// 打包整個Entry %4 Padding
 							byte[] newEntryBody = ArrayUtil.append(chunk.getWork(), newFFXIVString);
@@ -395,43 +443,45 @@ public class ReplaceEXDF {
 							entryBody.write(newEntryBody);
 							// 轉成byte[] 存入Map
 							listEntry.setValue(entryBody.getWork());
-						} 
+						}
 						// 準備修改好的內容
 						byte[] exdfFile = (new EXDFBuilder(jaExdList)).buildExdf();
 						byte[] exdfBlock = (new BinaryBlockBuilder(exdfFile)).buildBlock();
 						// 填充修改好的內容到新檔案
 						leIndexFile.seek(exdIndexFileJA.getPt() + 8L);
-						leIndexFile.writeInt((int)(datLength / 8L));
+						leIndexFile.writeInt((int) (datLength / 8L));
 						datLength += exdfBlock.length;
 						leDatFile.write(exdfBlock);
 					}
 				}
-			} 
-		} 
+			}
+		}
 		leDatFile.close();
 		leIndexFile.close();
 		System.out.println("Replace Completed");
 		log.info("Replace Completed");
 	}
-	
+
 	private void initFileList() throws Exception {
 		HashMap<Integer, SqPackIndexFolder> indexSE = (new SqPackIndex(this.pathToIndexSE)).resloveIndex();
 		Integer filePathCRC = Integer.valueOf(FFCRC.ComputeCRC("exd".toLowerCase().getBytes()));
 		Integer rootFileCRC = Integer.valueOf(FFCRC.ComputeCRC("root.exl".toLowerCase().getBytes()));
-		SqPackIndexFile rootIndexFileSE = (SqPackIndexFile)((SqPackIndexFolder)indexSE.get(filePathCRC)).getFiles().get(rootFileCRC);
+		SqPackIndexFile rootIndexFileSE = (SqPackIndexFile) ((SqPackIndexFolder) indexSE.get(filePathCRC)).getFiles()
+				.get(rootFileCRC);
 		byte[] rootFile = extractFile(this.pathToIndexSE, rootIndexFileSE.getOffset());
-		BufferedReader rootBufferedReader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(rootFile)));
+		BufferedReader rootBufferedReader = new BufferedReader(
+				new InputStreamReader(new ByteArrayInputStream(rootFile)));
 		String fileName;
 		while ((fileName = rootBufferedReader.readLine()) != null)
-			this.fileList.add("EXD/" + (fileName.contains(",") ? fileName.split(",")[0] : fileName) + ".EXH"); 
+			this.fileList.add("EXD/" + (fileName.contains(",") ? fileName.split(",")[0] : fileName) + ".EXH");
 	}
-	
+
 	private byte[] convertString(byte[] chBytes) {
 		if (this.dlang.equals("CHT")) {
 			try {
 				LERandomBytes inBytes = new LERandomBytes(chBytes, true, false);
 				LERandomBytes outBytes = new LERandomBytes();
-				Vector<byte[]> outBytesVector = (Vector)new Vector<>();
+				Vector<byte[]> outBytesVector = new Vector<>();
 				byte[] newFFXIVStringBytes = new byte[0];
 				while (inBytes.hasRemaining()) {
 					byte b = inBytes.readByte();
@@ -442,9 +492,9 @@ public class ReplaceEXDF {
 						outBytesVector.add(outBytes.getWork());
 						outBytes.clear();
 						continue;
-					} 
+					}
 					outBytes.writeByte(b);
-				} 
+				}
 				outBytesVector.add(outBytes.getWork());
 				outBytes.clear();
 				for (byte[] bytes : outBytesVector) {
@@ -452,33 +502,35 @@ public class ReplaceEXDF {
 						if (bytes[0] == 0x02) {
 							newFFXIVStringBytes = ArrayUtil.append(newFFXIVStringBytes, bytes);
 							continue;
-						} 
-						newFFXIVStringBytes = ArrayUtil.append(newFFXIVStringBytes, JianFan.getInstance().j2f(new String(bytes, "UTF-8")).getBytes("UTF-8"));
-					} 
-				} 
+						}
+						newFFXIVStringBytes = ArrayUtil.append(newFFXIVStringBytes,
+								JianFan.getInstance().j2f(new String(bytes, "UTF-8")).getBytes("UTF-8"));
+					}
+				}
 				return newFFXIVStringBytes;
-			} catch (Exception exception) {} 
+			} catch (Exception exception) {
+			}
 		}
 		return chBytes;
 	}
-	
+
 	private static void parsePayload(LERandomBytes inBytes, LERandomBytes outBytes) {
 		int possition = inBytes.position();
-		int type = inBytes.readByte() & 0xFF;
+		inBytes.readByte(); // type - not used
 		int size = getBodySize(inBytes.readByte() & 0xFF, inBytes);
 		byte[] body = new byte[size - 1];
 		inBytes.readFully(body);
 		inBytes.skip();
 		long fullLength = (inBytes.position() - possition + 1);
-		byte[] full = new byte[(int)fullLength];
+		byte[] full = new byte[(int) fullLength];
 		inBytes.seek(possition - 1);
 		inBytes.readFully(full);
 		outBytes.write(full);
 	}
-	
+
 	private static int getBodySize(int payloadSize, LERandomBytes inBytes) {
 		if (payloadSize < 0xF0)
-			return payloadSize; 
+			return payloadSize;
 		switch (payloadSize) {
 			case 0xF0:
 				return inBytes.readInt8();
@@ -489,15 +541,15 @@ public class ReplaceEXDF {
 				return inBytes.readInt24();
 			case 0xFE:
 				return inBytes.readInt32();
-		} 
+		}
 		return payloadSize;
 	}
-	
+
 	private byte[] extractFile(String pathToIndex, long dataOffset) throws IOException, FileNotFoundException {
 		String pathToOpen = pathToIndex;
 		// System.out.println("\tpathToOpen: " + pathToOpen);
 		// L代表long數字
-		int datNum = (int)((dataOffset & 0xF) / 2L);
+		int datNum = (int) ((dataOffset & 0xF) / 2L);
 		dataOffset -= dataOffset & 0xF;
 		pathToOpen = pathToOpen.replace("index2", "dat" + datNum);
 		pathToOpen = pathToOpen.replace("index", "dat" + datNum);
@@ -507,13 +559,13 @@ public class ReplaceEXDF {
 		datFile.close();
 		return data;
 	}
-	
+
 	private int datasetStringCount(EXDFDataset[] datasets) {
 		int count = 0;
 		for (EXDFDataset dataset : datasets) {
 			if (dataset.type == 0)
-				count++; 
-		} 
+				count++;
+		}
 		return count;
 	}
 }

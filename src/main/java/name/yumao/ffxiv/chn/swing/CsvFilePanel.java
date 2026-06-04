@@ -15,7 +15,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import name.yumao.ffxiv.chn.util.res.Config;
@@ -24,14 +23,14 @@ public class CsvFilePanel extends JFrame implements ActionListener {
     private JPanel csvPanel = new JPanel();
     private JPanel headerPanel = new JPanel();
     private List<JCheckBox> checkBoxes = new ArrayList<>();
-    private JCheckBox selectAllCheckBox = new JCheckBox("全選");
+    private JCheckBox selectAllCheckBox = new JCheckBox("全选");
     private JScrollPane scrollPane = new JScrollPane(csvPanel);
-    private JButton confirmButton = new JButton("確認");
-    
+    private JButton confirmButton = new JButton("确认");
+
     Logger log = Logger.getLogger("GPLogger");
 
     public CsvFilePanel(String targetPath) {
-        setTitle("選擇漢化範圍");
+        setTitle("选择汉化范围");
         setSize(400, 300);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         csvPanel.setLayout(new BoxLayout(csvPanel, BoxLayout.Y_AXIS));
@@ -39,7 +38,7 @@ public class CsvFilePanel extends JFrame implements ActionListener {
         selectAllCheckBox.addActionListener(this);
         selectAllCheckBox.setSelected(false);
         headerPanel.add(selectAllCheckBox);
-        
+
         // Add the header panel and scroll pane to the content pane
         Container contentPane = getContentPane();
         contentPane.setLayout(new BorderLayout());
@@ -47,7 +46,7 @@ public class CsvFilePanel extends JFrame implements ActionListener {
         contentPane.add(scrollPane, BorderLayout.CENTER);
 
         loadCsvFiles(targetPath);
-        
+
         confirmButton.addActionListener(this);
         contentPane.add(confirmButton, BorderLayout.SOUTH);
 
@@ -55,19 +54,19 @@ public class CsvFilePanel extends JFrame implements ActionListener {
         setLocationRelativeTo(null);
         setVisible(true);
     }
-    
+
     @Override
     public void actionPerformed(ActionEvent e) {
-    	if (e.getSource() == selectAllCheckBox) {
+        if (e.getSource() == selectAllCheckBox) {
             boolean selected = selectAllCheckBox.isSelected();
             for (JCheckBox checkBox : checkBoxes) {
                 checkBox.setSelected(selected);
             }
         } else if (e.getSource() == confirmButton) {
-    		StringBuilder selectedItems = new StringBuilder();
+            StringBuilder selectedItems = new StringBuilder();
             for (JCheckBox checkBox : checkBoxes) {
                 if (!checkBox.isSelected()) {
-                	String itemText = checkBox.getText();
+                    String itemText = checkBox.getText();
                     if (itemText.startsWith("📁 ")) {
                         itemText = itemText.substring(3); // Remove "📁 " prefix
                     }
@@ -77,12 +76,12 @@ public class CsvFilePanel extends JFrame implements ActionListener {
                     selectedItems.append(("exd/" + itemText).replaceAll("\\.csv$", ""));
                 }
             }
-            
+
             log.config("Skip files: " + selectedItems.toString());
             Config.setProperty("SkipFiles", selectedItems.toString());
             Config.saveProperty();
             dispose();
-    	}
+        }
     }
 
     private void loadCsvFiles(String targetPath) {
@@ -92,31 +91,31 @@ public class CsvFilePanel extends JFrame implements ActionListener {
 
         if (files != null) {
             for (File file : files) {
-            	if (file.isDirectory()) {
-	                JCheckBox checkBox = new JCheckBox("📁 " + file.getName());
-	                if (skipFiles.contains("exd/" + file.getName())) {
-	                	checkBox.setSelected(false);
-	                } else {
-	                	checkBox.setSelected(true);
-	                }
-	                // checkBox.addActionListener(this);
-	                checkBoxes.add(checkBox);
-	                csvPanel.add(checkBox);
-            	}
+                if (file.isDirectory()) {
+                    JCheckBox checkBox = new JCheckBox("📁 " + file.getName());
+                    if (skipFiles.contains("exd/" + file.getName())) {
+                        checkBox.setSelected(false);
+                    } else {
+                        checkBox.setSelected(true);
+                    }
+                    // checkBox.addActionListener(this);
+                    checkBoxes.add(checkBox);
+                    csvPanel.add(checkBox);
+                }
             }
             for (File file : files) {
-            	if (file.isFile() && file.getName().endsWith(".csv")) {
-	                JCheckBox checkBox = new JCheckBox(file.getName());
-	                if (skipFiles.contains("exd/" + file.getName().replace(".csv", ""))) {
-	                	checkBox.setSelected(false);
-	                } else {
-	                	checkBox.setSelected(true);
-	                }
-	                
-	                // checkBox.addActionListener(this);
-	                checkBoxes.add(checkBox);
-	                csvPanel.add(checkBox);
-            	}
+                if (file.isFile() && file.getName().endsWith(".csv")) {
+                    JCheckBox checkBox = new JCheckBox(file.getName());
+                    if (skipFiles.contains("exd/" + file.getName().replace(".csv", ""))) {
+                        checkBox.setSelected(false);
+                    } else {
+                        checkBox.setSelected(true);
+                    }
+
+                    // checkBox.addActionListener(this);
+                    checkBoxes.add(checkBox);
+                    csvPanel.add(checkBox);
+                }
             }
         }
     }

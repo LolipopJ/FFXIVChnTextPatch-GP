@@ -44,7 +44,7 @@ dependencies {
 	compile("com.jcraft:jzlib:1.1.3")
 	compile("org.nlpcn:nlp-lang:1.7.6")
 	compile("com.google.code.gson:gson:2.8.5")
-	compile(files("libs/univocity-parsers-2.9.1.jar")) 
+	compile("com.univocity:univocity-parsers:2.9.1")
 }
 
 mainClassName = "name.yumao.ffxiv.chn.FFXIVPatchMain"
@@ -52,16 +52,12 @@ mainClassName = "name.yumao.ffxiv.chn.FFXIVPatchMain"
 jar {
 	manifest {
 		attributes(
-				'Main-Class': 'org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader',
-				'Class-Path': './ ' + configurations.compile.collect { it.getName() }.join(' '),
-				'Rsrc-Main-Class': mainClassName,
+				'Main-Class': mainClassName
 		)
 	}
 	from {
-		// zip compile jar
-		configurations.compile.collect { it }
 		// zip extra compile jar
-//		configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+		configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
 	}
 }
 
