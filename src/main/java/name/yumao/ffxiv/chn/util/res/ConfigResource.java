@@ -51,9 +51,7 @@ public class ConfigResource {
 				setProperty("GamePath", "");
 				setProperty("DLanguage", "CHS");
 				setProperty("SLanguage", "JA");
-				setProperty("ReplaText", "1");
 				setProperty("FLanguage", "CSV");
-				setProperty("ReplaFont", "1");
 				setProperty("SkipFiles", "");
 				setProperty("TransMode", "0");
 

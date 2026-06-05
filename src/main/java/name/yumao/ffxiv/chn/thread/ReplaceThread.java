@@ -17,17 +17,15 @@ public class ReplaceThread implements Runnable {
 	// private List<TeemoUpdateVo> updates;
 	// private String slang; // not used
 	private String flang;
-	private String rfont;
-	private String rtext;
+	private boolean patchFont;
+	private boolean patchText;
 
-	public ReplaceThread(String resourceFolder, TextPatchPanel textPatchPanel) {
+	public ReplaceThread(String resourceFolder, TextPatchPanel textPatchPanel, boolean patchFont, boolean patchText) {
 		this.resourceFolder = resourceFolder;
 		this.textPatchPanel = textPatchPanel;
-		// this.updates = updates;
-		// this.slang = Config.getProperty("SLanguage"); // not used
 		this.flang = Config.getProperty("FLanguage");
-		this.rfont = Config.getProperty("ReplaFont");
-		this.rtext = Config.getProperty("ReplaText");
+		this.patchFont = patchFont;
+		this.patchText = patchText;
 	}
 
 	public static boolean hasCsvFiles(String directoryPath) {
@@ -56,15 +54,16 @@ public class ReplaceThread implements Runnable {
 		Logger log = Logger.getLogger("GPLogger");
 
 		try {
-			this.textPatchPanel.replaceButton.setEnabled(false);
+			this.textPatchPanel.patchTextButton.setEnabled(false);
+			this.textPatchPanel.patchFontButton.setEnabled(false);
 			PercentPanel percentPanel = new PercentPanel("汉化进度");
-			if (this.rfont.equals("1")) {
+			if (this.patchFont) {
 				new ReplaceFont(this.resourceFolder + File.separator + "000000.win32.index",
 						"resource" + File.separator + "font", percentPanel).replace();
 			} else {
 				log.info("Skip replacing font files.");
 			}
-			if (this.rtext.equals("1")) {
+			if (this.patchText) {
 				if ((this.flang.equals("CSV")) && hasCsvFiles("resource" + File.separator + "rawexd")) {
 					log.info("Start patching with CSV files.");
 					(new ReplaceEXDF(this.resourceFolder + File.separator + "0a0000.win32.index",
@@ -87,7 +86,8 @@ public class ReplaceThread implements Runnable {
 			JOptionPane.showMessageDialog(null, "<html><body>汉化完毕</body></html>", "提示", -1);
 			log.info("Patch finished.");
 			percentPanel.dispose();
-			this.textPatchPanel.replaceButton.setEnabled(true);
+			this.textPatchPanel.patchTextButton.setEnabled(true);
+			this.textPatchPanel.patchFontButton.setEnabled(true);
 		} catch (Exception exception) {
 			JOptionPane.showMessageDialog(null, "<html><body>程序错误！</body></html>", "汉化错误", 0);
 			log.severe("Patch failed!");
